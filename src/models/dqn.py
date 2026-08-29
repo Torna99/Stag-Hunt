@@ -1,7 +1,9 @@
-### Enrico Tornabene (0001191764)
+### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
 ###
-### Note: This code is based on the implementation of DQN in the official pytorch tutorial 
-###
+### Here we implement a simple DQN model with 2 hidden layers and ReLU activation function. 
+### The input dimension is the state space dimension and the output dimension is the action space dimension.
+### The model is trained using the Adam optimizer and the loss function is the mean squared error between 
+### the predicted Q-values and the target Q-values.
 
 
 import torch 

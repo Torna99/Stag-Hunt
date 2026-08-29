@@ -1,7 +1,6 @@
-### Enrico Tornabene (0001191764)
+### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
 ###
-### Note: This code is based on the implementation of DQN in the official pytorch tutorial 
-###
+### In this code we implement a standard DQN agent. 
 
 import torch 
 import torch.nn as nn
@@ -48,6 +47,9 @@ class DQNAgent:
         # self.target_net.eval()
 
     def select_action(self, state):
+        '''
+        Select an action based on the current state using epsilon-greedy policy.
+        '''
         sample = random.random()
 
         ## Exploration
@@ -62,6 +64,9 @@ class DQNAgent:
             return self.policy_net(state).max(1).indices.view(1, 1)
 
     def epsilon_decay_step(self):
+        '''
+        Decay the epsilon value.
+        '''
         if self.epsilon > self.epsilon_min:
             self.epsilon -= self.epsilon_decay
             #self.epsilon *= self.epsilon_decay
@@ -72,6 +77,10 @@ class DQNAgent:
         self.rep_memory.push(state, action, reward, next_state, done)
 
     def optimize_model(self):
+        '''
+        This function is the single train step of the DQN agent. 
+        It samples a batch of experiences from the replay memory, computes the loss, and updates the policy network.
+        '''
 
         # if rep memory is not filled, return
         if len(self.rep_memory) < self.batch_size:
@@ -81,12 +90,7 @@ class DQNAgent:
         samples = self.rep_memory.samples_batch(self.batch_size)
         states, actions, rewards, next_states, dones = zip(*samples)
 
-        # states = torch.FloatTensor(np.array(states))
-        # actions = torch.LongTensor(actions).unsqueeze(1)
-        # # actions = torch.tensor([a.item() if isinstance(a, torch.Tensor) else a for a in actions], dtype=torch.int64, device=self.device).unsqueeze(1)
-        # rewards = torch.FloatTensor(rewards)
-        # next_states = torch.FloatTensor(np.array(next_states))
-        # dones = torch.FloatTensor(dones)
+        # Convert the samples to tensors
         states = torch.cat(states, dim=0).to(self.device).float()
         next_states = torch.cat(next_states, dim=0).to(self.device).float()
         actions = torch.tensor(

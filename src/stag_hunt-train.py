@@ -1,6 +1,6 @@
-### Enrico Tornabene (0001191764)
-###
-
+### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
+### 
+### Here we implement the training of 2 agent 
 
 import time
 import gymnasium as gym
@@ -14,10 +14,9 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-### ========
+### ================================================================================================================
 ### Setting variables
-### ========
-
+### ================================================================================================================
 GAME = "Hunt"  # or "Harvest" or "Escalation"
 
 MAX_STEPS_PER_EPISODE = 200
@@ -56,9 +55,9 @@ if torch.cuda.is_available():
 
 
 
-### =======
+### ================================================================================================================
 ### Main
-### =======
+### ================================================================================================================
 if __name__ == "__main__":
 
     # Create the environment
@@ -153,10 +152,10 @@ if __name__ == "__main__":
             print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage}")
 
 
-
-### =======
+            
+### ================================================================================================================
 ### Plotting the training results
-### =======
+### ================================================================================================================
 plot_training_results(
     rewards=total_rewrds,
     stags=total_stag_hunted,
