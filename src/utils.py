@@ -3,6 +3,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 def moving_avg(data, w):
     if len(data) < w:
@@ -40,3 +41,30 @@ def plot_training_results(rewards, stags, maulings, forage, window=50):
     #plt.savefig("training_results.png", dpi=300)
     plt.show()
 
+def plot_epsilon_trend(epsilon_values, epsilon_min, epsilon_decay):
+
+    episodes = np.arange(1, len(epsilon_values) + 1)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(episodes, epsilon_values, color="darkblue", linewidth=2, label="Epsilon Value")
+    plt.axhline(y=epsilon_min, color="red", linestyle="--", label=f"Epsilon Min ({epsilon_min})")
+    plt.title(f"Epsilon Decay Trend (Decay Rate: {epsilon_decay})", fontsize=14, fontweight='bold')
+    plt.xlabel("Episode")
+    plt.ylabel("Epsilon Value")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    #plt.savefig("epsilon_trend.png", dpi=300)
+    plt.show()
+
+def save_train_metrics(rewards, stags, maulings, forage, filepath="../results/train_metrics.csv"):
+    data = {
+        "Episode": np.arange(1, len(rewards) + 1),
+        "Total Reward": rewards,
+        "Stags (Coop)": stags,
+        "Forage (Safe)": forage,
+        "Maulings (Risk)": maulings
+    }
+    df = pd.DataFrame(data)
+    df.to_csv(filepath, index=False)
+    print(f"Training metrics saved to {filepath}")

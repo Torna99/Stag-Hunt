@@ -1,6 +1,14 @@
-### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
+### Note: This code is based on the paper "Human-level control through deep reinforcement learning" by Mnih et al.
 ###
-### In this code we implement a standard DQN agent. 
+###
+### Using only one network (the policy one) lead us to unstable training and divergence of the Q-values. This happens
+### because the target values are changing at each step of the training, which makes the learning process unstable, trying to reach 
+### a moving target (moving target problem). The estimate of the Q-vlaues [Q(s,a, theta)] and the actual target [r + gamma * max_a' Q(s',a', theta)] 
+### use the same parameters (theta) and this leads to the moving target problem.
+### 
+### To solve this problem we use also a target network, which is a copy of the policy net and is updated only every C steps. 
+### The new weights of the target net will be the same as the policy net. In this way the target values are  more stable and 
+### the learning process is more stable.
 
 import torch 
 import torch.nn as nn
@@ -15,10 +23,13 @@ import numpy as np
 
 class DQNAgent:
 
-    def __init__(self, state_dim, action_dim, lr=1e-3, gamma=0.99, epsilon=1.0, epsilon_decay=0.99, epsilon_min=0.1, buffer_size = 1e4, batch_size=32, device="cpu"):
+    def __init__(self, state_dim, action_dim, lr=1e-3, gamma=0.99, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.1, buffer_size = 1e4, batch_size=32, device="cpu"):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.device = device
+
+        ## initialize C: number of steps after which the target network is updated with the policy network weights
+        self.C = 50 
 
         ## initialize hyperparameters: gamma is the discount factor
         self.lr = lr
@@ -34,17 +45,19 @@ class DQNAgent:
         ## instatiate the replay memory
         self.rep_memory = ReplayMemory(int(buffer_size))
 
-        ## instatiate the policy
+        ## instatiate the policy and target networks
         self.policy_net = DQN(state_dim, action_dim).to(self.device)
+        self.target_net = DQN(state_dim, action_dim).to(self.device)
+
+        ## copy the weights of the policy net to the target net
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval() # set the target net in evaluation mode since we don't want to update its weights during training via backpropagation (so using optimizer.step())
         
         ## instatiate the optimizer (use Adam inseatd of SGD for better performance) and the loss function (MSE)
         self.optimizer = optimizer.Adam(self.policy_net.parameters(), lr=self.lr)
         self.loss = nn.MSELoss()
 
-        ## BOH?
-        # self.target_net.load_state_dict(self.policy_net.state_dict())
-        # self.target_net.eval()
-
+   
     def select_action(self, state):
         '''
         Select an action based on the current state using epsilon-greedy policy.
@@ -87,10 +100,18 @@ class DQNAgent:
     def store_sample(self, state, action, reward, next_state, done):
         self.rep_memory.push(state, action, reward, next_state, done)
 
+    
+    def update_target_network(self):
+        '''
+        Update the target network with the weights of the policy network.
+        '''
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()
+
     def optimize_model(self):
         '''
         This function is the single train step of the DQN agent. 
-        It samples a batch of experiences from the replay memory, computes the loss, and updates the policy network.
+        It samples a batch of experiences from the replay memory, computes the loss, and updates the networks.
         '''
 
         # if rep memory is not filled, return
@@ -112,20 +133,20 @@ class DQNAgent:
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1, 1)
         dones = torch.tensor(dones, dtype=torch.float32, device=self.device).view(-1, 1)
         
-        # compute Q(s_t, a)
+        # compute Q(s_t, a) the current estimate of the Q-values for the current state-action pairs
         state_action_values = self.policy_net(states).gather(1, actions)
 
         with torch.no_grad():
-            # get the q values for the next states
-            next_state_values = self.policy_net(next_states).max(1)[0].unsqueeze(1)
-            #best_next_actions = self.policy_net(next_states).argmax(dim=1, keepdim=True)
 
-            # compute the expected Q values (target q for the loss function)
-            # use (1 - dones) to handle the terminal states
-            y_j = rewards + (self.gamma * next_state_values * (1 - dones))
+            # evaluate the target Q-values using the target network for the next states
+            next_state_values = self.target_net(next_states).max(1)[0].unsqueeze(1)
+
+            # temporal difference target: r + gamma * max_a' Q(s',a', theta_target)
+            expected_state_action_values = rewards + (self.gamma * next_state_values * (1 - dones))
+
 
         # compute the loss
-        loss = self.loss(state_action_values, y_j)
+        loss = self.loss(state_action_values, expected_state_action_values)
 
         # optimize the model 
         self.optimizer.zero_grad() 

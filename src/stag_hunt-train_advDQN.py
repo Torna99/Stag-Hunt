@@ -1,14 +1,13 @@
-### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
-### 
-### Here we implement the training of 2 agent 
+### Here we implement the training of 2 agent, based on th advanced DQN agent with 2 different nets (target and policy) 
+###
 
 import time
 import gymnasium as gym
 import gymnasium_stag_hunt
 import torch
 
-from agents.dqn_agent import DQNAgent
-from utils import plot_training_results, plot_epsilon_trend
+from agents.dqn_agent_advanced import DQNAgent
+import utils
 
 import numpy as np
 import random
@@ -37,10 +36,11 @@ GAMMA = 0.9
 EPS_START = 1
 EPS_END = 0.1
 EPS_PLAT = 0.8
-# EPS_DECAY = (EPS_START - EPS_END) / (EPS_PLAT * MAX_EPISODES * MAX_STEPS_PER_EPISODE)
+#EPS_DECAY = (EPS_START - EPS_END) / (EPS_PLAT * MAX_EPISODES * MAX_STEPS_PER_EPISODE)
 EPS_DECAY = 0.995
 LR = 5e-4
 REPLAY_BUFFER_SIZE = 10000
+C = 500 # number of steps after which the target network is updated with the policy network weights
 
 # Setting the accelerator if available
 device = torch.device(
@@ -92,6 +92,8 @@ if __name__ == "__main__":
     total_maulings = []
     total_forage = []
     epsilon_values = [] 
+
+    tot_step = 0
     for episode in range(MAX_EPISODES):
         # initialize the environment and get the first state of the episode
         state, info = env.reset()
@@ -140,6 +142,12 @@ if __name__ == "__main__":
             # agent1.epsilon_decay_step()
             # agent2.epsilon_decay_step()
 
+            # update the target networks every C steps
+            tot_step += 1
+            if tot_step % C == 0 and tot_step != 0:
+                agent1.update_target_network()
+                agent2.update_target_network()
+
             # update the state for the next step and accumulate the rewards
             state_agent1 = next_state_agent1
             state_agent2 = next_state_agent2
@@ -164,7 +172,7 @@ if __name__ == "__main__":
 ### ================================================================================================================
 ### Plotting the training results
 ### ================================================================================================================
-plot_training_results(
+utils.plot_training_results(
     rewards=total_rewrds,
     stags=total_stag_hunted,
     maulings=total_maulings,
@@ -172,4 +180,6 @@ plot_training_results(
     window=50
 )
 
-plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
+utils.plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
+
+
