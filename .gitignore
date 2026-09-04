@@ -13,4 +13,4 @@ __pycache__/
 .DS_Store
 
 # Output pesanti (opzionale, decommenta se non vuoi tracciare i pesi)
-# saved_models/*.pth
+saved_models/*

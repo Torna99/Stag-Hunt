@@ -115,6 +115,7 @@ class DQNAgent:
         # compute Q(s_t, a)
         state_action_values = self.policy_net(states).gather(1, actions)
 
+        # y = r + gamma * max_a' Q(s', a', theta) for non-terminal states
         with torch.no_grad():
             # get the q values for the next states
             next_state_values = self.policy_net(next_states).max(1)[0].unsqueeze(1)
@@ -131,4 +132,8 @@ class DQNAgent:
         self.optimizer.zero_grad() 
         loss.backward()
         self.optimizer.step()
+
+
+        # return the mean of the estimated q-values for the current state-action pairs to monitor the overestimation bias during training
+        return state_action_values.mean().item()
 

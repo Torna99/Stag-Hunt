@@ -1,14 +1,9 @@
-### Note: This code is based on the paper "Human-level control through deep reinforcement learning" by Mnih et al.
+### Note: This code is based on the paper "Deep Reinforcement Learning with Double Q-learning" by Hado van Hasselt, Arthur Guez, David Silver.
 ###
 ###
-### Using only one network (the policy one) lead us to unstable training and divergence of the Q-values. This happens
-### because the target values are changing at each step of the training, which makes the learning process unstable, trying to reach 
-### a moving target (moving target problem). The estimate of the Q-vlaues [Q(s,a, theta)] and the actual target [r + gamma * max_a' Q(s',a', theta)] 
-### use the same parameters (theta) and this leads to the moving target problem.
-### 
-### To solve this problem we use also a target network, which is a copy of the policy net and is updated only every C steps. 
-### The new weights of the target net will be the same as the policy net. In this way the target values are  more stable and 
-### the learning process is more stable.
+### Here we implement the Double DQN algorithm, which is an improvement over the standard DQN algorithm. 
+### The idea is to decouple the action selection from the action evaluation in the target Q-value calculation, to help
+### reduce overestimation bias in Q-learning.
 
 import torch 
 import torch.nn as nn
@@ -27,7 +22,7 @@ class DQNAgent:
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.device = device
-
+        
         ## initialize hyperparameters: gamma is the discount factor
         self.lr = lr
         self.gamma = gamma
@@ -133,16 +128,22 @@ class DQNAgent:
         # compute Q(s_t, a) the current estimate of the Q-values for the current state-action pairs
         state_action_values = self.policy_net(states).gather(1, actions)
 
-        # y = r + gamma * max_a' Q(s', a', theta_target) for non-terminal states
+        # Here we use the Double DQN action selection and evaluation to compute the target Q-values for the next states.
         with torch.no_grad():
 
-            # evaluate the target Q-values using the target network for the next states
-            next_state_values = self.target_net(next_states).max(1)[0].unsqueeze(1)
+            # SELECTION: we let the policy net (the online one) select the best action for the next states
+            # (instead of next_state_values = self.target_net(next_states).max(1)[0].unsqueeze(1))
+            best_next_actions = self.policy_net(next_states).argmax(dim=1, keepdim=True)
 
-            # temporal difference target: r + gamma * max_a' Q(s',a', theta_target)
+            # EVALUATION: let target net (the offline one) to compute the value for the best action previously choosen
+            next_state_values = self.target_net(next_states).gather(1, best_next_actions)
+
+            # TD ERROR (target): r + gamma * Q(s', argmaxQ(s', a, theta), theta_target)
+            #                  = r + gamma * Q(s', best_next_action, theta_target)
+            #                  = r + gamma * next_state_values * (1 - dones) 
             expected_state_action_values = rewards + (self.gamma * next_state_values * (1 - dones))
 
-
+    
         # compute the loss
         loss = self.loss(state_action_values, expected_state_action_values)
 

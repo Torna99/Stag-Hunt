@@ -1,19 +1,19 @@
-### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
-### 
-### Here we implement the training of 2 agent 
+### Here we implement the training of 2 agent, based on th doubleDQN agent with 2 different nets (target and policy) 
+###
 
 import time
-from pathlib import Path
 import gymnasium as gym
 import gymnasium_stag_hunt
 import torch
 
-from agents.dqn_agent import DQNAgent
+from agents.doubledqn_agent import DQNAgent
 import utils
 
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+
+from pathlib import Path
 
 ### ================================================================================================================
 ### Setting variables
@@ -38,10 +38,11 @@ GAMMA = 0.9
 EPS_START = 1
 EPS_END = 0.1
 EPS_PLAT = 0.8
-# EPS_DECAY = (EPS_START - EPS_END) / (EPS_PLAT * MAX_EPISODES * MAX_STEPS_PER_EPISODE)
+#EPS_DECAY = (EPS_START - EPS_END) / (EPS_PLAT * MAX_EPISODES * MAX_STEPS_PER_EPISODE)
 EPS_DECAY = 0.995
 LR = 5e-4
 REPLAY_BUFFER_SIZE = 10000
+C = 500 # number of steps after which the target network is updated with the policy network weights
 
 # Setting the accelerator if available
 device = torch.device(
@@ -57,13 +58,12 @@ if torch.cuda.is_available():
 
 # setting variable to store the training results
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_NAME = "stdDQN_2agents"
+MODEL_NAME = "doubleDQN_2agents"
 MODEL_DIR = BASE_DIR / "saved_models"
 RESULTS_DIR = BASE_DIR / "results"
 
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
 
 ### ================================================================================================================
 ### Main
@@ -100,9 +100,10 @@ if __name__ == "__main__":
     total_stag_hunted = []
     total_maulings = []
     total_forage = []
-    epsilon_values = [] 
     total_q_values = []
+    epsilon_values = [] 
 
+    tot_step = 0
     for episode in range(MAX_EPISODES):
         # initialize the environment and get the first state of the episode
         state, info = env.reset()
@@ -116,6 +117,7 @@ if __name__ == "__main__":
         tot_maul = 0
         tot_forage = 0
         episode_q_values = []
+
         done = False
         while not done:
             # Select actions 
@@ -145,7 +147,7 @@ if __name__ == "__main__":
             agent1.store_sample(state_agent1, a1, reward_agent1, next_state_agent1, done)
             agent2.store_sample(state_agent2, a2, reward_agent2, next_state_agent2, done)
 
-            # Train step and update of the epsilon value
+            # Train step and update of the epsilon value (log the mean Q-value for each agent to track the overestimation problem)
             q_val1 = agent1.optimize_model()
             q_val2 = agent2.optimize_model()
 
@@ -155,9 +157,16 @@ if __name__ == "__main__":
             # agent1.epsilon_decay_step()
             # agent2.epsilon_decay_step()
 
+            # update the target networks every C steps
+            tot_step += 1
+            if tot_step % C == 0 and tot_step != 0:
+                agent1.update_target_network()
+                agent2.update_target_network()
+
             # update the state for the next step and accumulate the rewards
             state_agent1 = next_state_agent1
             state_agent2 = next_state_agent2
+
             total_reward_agent1 += reward_agent1
             total_reward_agent2 += reward_agent2
 
@@ -171,20 +180,19 @@ if __name__ == "__main__":
         total_maulings.append(tot_maul)
         total_forage.append(tot_forage)
         total_q_values.append(np.mean(episode_q_values))
+
         if episode % 50 == 0 or episode == 0:
             print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage}")
 
 
             
 ### ================================================================================================================
-### Plotting the training results
+### Plotting the training results and saving 
 ### ================================================================================================================
-
 
 torch.save(agent1.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent1.pth")
 torch.save(agent2.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent2.pth")
-utils.save_train_metrics(rewards=total_rewrds, stags=total_stag_hunted, maulings=total_maulings, q_values=total_q_values, forage=total_forage, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
-
+utils.save_train_metrics(rewards=total_rewrds, stags=total_stag_hunted, maulings=total_maulings, forage=total_forage, q_values=total_q_values, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
 
 utils.plot_training_results(
     rewards=total_rewrds,
@@ -193,5 +201,8 @@ utils.plot_training_results(
     forage=total_forage,
     window=50
 )
-
 utils.plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
+
+
+
+
