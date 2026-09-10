@@ -1,19 +1,19 @@
-### Here we implement the training of 2 agent, based on th advanced DQN agent with 2 different nets (target and policy) 
-###
+### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
+### 
+### Here we implement the training of 2 agent 
 
 import time
+from pathlib import Path
 import gymnasium as gym
 import gymnasium_stag_hunt
 import torch
 
-from agents.dqn_agent_advanced import DQNAgent
+from agents.dqn_agent import DQNAgent
 import utils
 
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-
-from pathlib import Path
 
 ### ================================================================================================================
 ### Setting variables
@@ -24,7 +24,7 @@ MAX_STEPS_PER_EPISODE = 200
 MAX_EPISODES = 2000
 
 # env configuration variables 
-GRID_SIZE = 7
+GRID_SIZE = 10
 OBS_TYPE = "coords"  # or "image"
 RENDER_MODE = None # None of "human"
 FORAGE_QTA = 2
@@ -38,11 +38,10 @@ GAMMA = 0.9
 EPS_START = 1
 EPS_END = 0.1
 EPS_PLAT = 0.8
-#EPS_DECAY = (EPS_START - EPS_END) / (EPS_PLAT * MAX_EPISODES * MAX_STEPS_PER_EPISODE)
+# EPS_DECAY = (EPS_START - EPS_END) / (EPS_PLAT * MAX_EPISODES * MAX_STEPS_PER_EPISODE)
 EPS_DECAY = 0.995
 LR = 5e-4
 REPLAY_BUFFER_SIZE = 10000
-C = 500 # number of steps after which the target network is updated with the policy network weights
 
 # Setting the accelerator if available
 device = torch.device(
@@ -58,12 +57,13 @@ if torch.cuda.is_available():
 
 # setting variable to store the training results
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_NAME = "advDQN_2agents"
+MODEL_NAME = "stdDQN_2agents"
 MODEL_DIR = BASE_DIR / "saved_models"
 RESULTS_DIR = BASE_DIR / "results"
 
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 ### ================================================================================================================
 ### Main
@@ -103,7 +103,6 @@ if __name__ == "__main__":
     epsilon_values = [] 
     total_q_values = []
 
-    tot_step = 0
     for episode in range(MAX_EPISODES):
         # initialize the environment and get the first state of the episode
         state, info = env.reset()
@@ -156,12 +155,6 @@ if __name__ == "__main__":
             # agent1.epsilon_decay_step()
             # agent2.epsilon_decay_step()
 
-            # update the target networks every C steps
-            tot_step += 1
-            if tot_step % C == 0 and tot_step != 0:
-                agent1.update_target_network()
-                agent2.update_target_network()
-
             # update the state for the next step and accumulate the rewards
             state_agent1 = next_state_agent1
             state_agent2 = next_state_agent2
@@ -178,19 +171,20 @@ if __name__ == "__main__":
         total_maulings.append(tot_maul)
         total_forage.append(tot_forage)
         total_q_values.append(np.mean(episode_q_values))
-
         if episode % 50 == 0 or episode == 0:
             print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage}")
 
 
             
 ### ================================================================================================================
-### Plotting the training results and saving 
+### Plotting the training results
 ### ================================================================================================================
+
 
 torch.save(agent1.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent1.pth")
 torch.save(agent2.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent2.pth")
 utils.save_train_metrics(rewards=total_rewrds, stags=total_stag_hunted, maulings=total_maulings, q_values=total_q_values, forage=total_forage, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
+
 
 utils.plot_training_results(
     rewards=total_rewrds,
@@ -199,6 +193,5 @@ utils.plot_training_results(
     forage=total_forage,
     window=50
 )
+
 utils.plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
-
-

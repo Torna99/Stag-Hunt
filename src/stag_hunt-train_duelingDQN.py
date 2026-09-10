@@ -1,12 +1,12 @@
-### Here we implement the training of 2 agent, based on th advanced DQN agent with 2 different nets (target and policy) 
-###
+### Here we implement the training of 2 agents, based on the duelingDQN agent with different architecture wrt the standard DQN one
+### and the Double DQN algorithm.
 
 import time
 import gymnasium as gym
 import gymnasium_stag_hunt
 import torch
 
-from agents.dqn_agent_advanced import DQNAgent
+from agents.duelingdqn_agent import DQNAgent
 import utils
 
 import numpy as np
@@ -24,7 +24,7 @@ MAX_STEPS_PER_EPISODE = 200
 MAX_EPISODES = 2000
 
 # env configuration variables 
-GRID_SIZE = 7
+GRID_SIZE = 10
 OBS_TYPE = "coords"  # or "image"
 RENDER_MODE = None # None of "human"
 FORAGE_QTA = 2
@@ -58,7 +58,7 @@ if torch.cuda.is_available():
 
 # setting variable to store the training results
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_NAME = "advDQN_2agents"
+MODEL_NAME = "duelingDQN_2agents"
 MODEL_DIR = BASE_DIR / "saved_models"
 RESULTS_DIR = BASE_DIR / "results"
 
@@ -100,8 +100,8 @@ if __name__ == "__main__":
     total_stag_hunted = []
     total_maulings = []
     total_forage = []
-    epsilon_values = [] 
     total_q_values = []
+    epsilon_values = [] 
 
     tot_step = 0
     for episode in range(MAX_EPISODES):
@@ -117,6 +117,7 @@ if __name__ == "__main__":
         tot_maul = 0
         tot_forage = 0
         episode_q_values = []
+
         done = False
         while not done:
             # Select actions 
@@ -146,7 +147,7 @@ if __name__ == "__main__":
             agent1.store_sample(state_agent1, a1, reward_agent1, next_state_agent1, done)
             agent2.store_sample(state_agent2, a2, reward_agent2, next_state_agent2, done)
 
-            # Train step and update of the epsilon value
+            # Train step and update of the epsilon value (log the mean Q-value for each agent to track the overestimation problem)
             q_val1 = agent1.optimize_model()
             q_val2 = agent2.optimize_model()
 
@@ -165,6 +166,7 @@ if __name__ == "__main__":
             # update the state for the next step and accumulate the rewards
             state_agent1 = next_state_agent1
             state_agent2 = next_state_agent2
+
             total_reward_agent1 += reward_agent1
             total_reward_agent2 += reward_agent2
 
@@ -190,7 +192,7 @@ if __name__ == "__main__":
 
 torch.save(agent1.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent1.pth")
 torch.save(agent2.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent2.pth")
-utils.save_train_metrics(rewards=total_rewrds, stags=total_stag_hunted, maulings=total_maulings, q_values=total_q_values, forage=total_forage, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
+utils.save_train_metrics(rewards=total_rewrds, stags=total_stag_hunted, maulings=total_maulings, forage=total_forage, q_values=total_q_values, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
 
 utils.plot_training_results(
     rewards=total_rewrds,
@@ -200,5 +202,7 @@ utils.plot_training_results(
     window=50
 )
 utils.plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
+
+
 
 

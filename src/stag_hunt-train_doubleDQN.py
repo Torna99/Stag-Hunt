@@ -24,7 +24,7 @@ MAX_STEPS_PER_EPISODE = 200
 MAX_EPISODES = 2000
 
 # env configuration variables 
-GRID_SIZE = 7
+GRID_SIZE = 10
 OBS_TYPE = "coords"  # or "image"
 RENDER_MODE = None # None of "human"
 FORAGE_QTA = 2
