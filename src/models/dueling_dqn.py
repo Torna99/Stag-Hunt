@@ -30,7 +30,6 @@ class DuelingDQN(nn.Module):
             nn.ReLU()
         )
 
-
         self.value_layers = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
