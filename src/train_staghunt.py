@@ -1,7 +1,6 @@
 ### TODO:
 ### - aggiungere salvataggio dei modelli e dei risultati
 ### - aggiungere mappo e a2c
-### - FAR SI CHE SI PASSI AI METODI I VALORI GREZZI E POI SIANO I METODI A RENDERLI TENSORI
 
 import time
 import gymnasium as gym
@@ -50,12 +49,13 @@ argument_parser.add_argument("--stag_reward", type=int, default=5, help="Reward 
 argument_parser.add_argument("--mauling_penalty", type=int, default=-3, help="Penalty for mauling")
 
 argument_parser.add_argument("--discount_factor", type=float, default=0.99, help="Discount factor for future rewards")
-argument_parser.add_argument("--learning_rate", type=float, default=5e-4, help="Learning rate for the optimizer")
+argument_parser.add_argument("--learning_rate", type=float, default=5e-3, help="Learning rate for the optimizer")
 argument_parser.add_argument("--batch_size", type=int, default=64, help="Batch size for training")
 argument_parser.add_argument("--epsilon_start", type=float, default=1.0, help="Starting value of epsilon for epsilon-greedy policy")
 argument_parser.add_argument("--epsilon_decay", type=float, default=0.995, help="Decay rate of epsilon for epsilon-greedy policy")
 argument_parser.add_argument("--epsilon_min", type=float, default=0.1, help="Minimum value of epsilon for epsilon-greedy policy")
 argument_parser.add_argument("--target_update_freq", type=int, default=500, help="Frequency of target network updates for DQN-based algorithms")
+argument_parser.add_argument("--gae_lambda", type=float, default=0.95, help="Lambda parameter for GAE")
 
 args = argument_parser.parse_args()
 
@@ -78,6 +78,10 @@ EPS_START = args.epsilon_start
 EPS_DECAY = args.epsilon_decay
 EPS_END = args.epsilon_min
 C = args.target_update_freq
+
+GAE_LAMBDA = args.gae_lambda
+
+NUM_AGENTS = 2
 
 if ALGORITHM == "vanillaDQN":
     from agents.vanilladqn_agent import DQNAgent as Agent
@@ -122,9 +126,11 @@ if __name__ == "__main__":
     state, info = env.reset() 
     action_dim = env.action_space.n
     state_dim = len(state[0])
+    global_state_dim = state_dim * NUM_AGENTS
 
     ### Creation of the agents
     agent1 = Agent(
+        global_state_dim = global_state_dim,
         state_dim = state_dim,
         action_dim = action_dim,
         lr = LR,
@@ -137,6 +143,7 @@ if __name__ == "__main__":
         device = device
     )
     agent2 = Agent(
+        global_state_dim = global_state_dim,
         state_dim = state_dim,
         action_dim = action_dim,
         lr = LR,
@@ -208,7 +215,7 @@ if __name__ == "__main__":
                 episode_q_values.append((q_val1 + q_val2) / 2.0)
 
             tot_step += 1
-            if ALGORITHM in ["doubleDQN", "duelingDQN"] and tot_step % C == 0 and tot_step > 0:
+            if ALGORITHM in ["standardDQN","doubleDQN", "duelingDQN"] and tot_step % C == 0 and tot_step > 0:
                 agent1.update_target_network()
                 agent2.update_target_network()
 

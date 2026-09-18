@@ -1,0 +1,45 @@
+Training 2 agents using doubleDQN algorithm for 2000 episodes with a maximum of 200 steps per episode.
+/Users/enrico/Università/5-Anno/5.2-Semestre/Autonomous_and_Adaptive_Systems/AAS-Project/Stag-Hunt/aasvenv/lib/python3.12/site-packages/gymnasium/utils/passive_env_checker.py:244: UserWarning: [33mWARN: The reward returned by `step()` must be a float, int, np.integer or np.floating, actual type: <class 'tuple'>[0m
+  logger.warn(
+/Users/enrico/Università/5-Anno/5.2-Semestre/Autonomous_and_Adaptive_Systems/AAS-Project/Stag-Hunt/src/agents/doubledqn_agent.py:118: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at /Users/runner/work/pytorch/pytorch/torch/csrc/utils/tensor_new.cpp:255.)
+  states = torch.tensor(states, dtype=torch.float32).to(self.device)
+[EP 1/2000] -> Total reward: -217.0	| Stags: 0	| Maulings: 73	| Forage: 2 | Mean Q-value: -0.3463	| Epsilon: 0.9950
+[EP 51/2000] -> Total reward: -144.0	| Stags: 0	| Maulings: 49	| Forage: 3 | Mean Q-value: 1.8105	| Epsilon: 0.7744
+[EP 101/2000] -> Total reward: -109.0	| Stags: 0	| Maulings: 37	| Forage: 2 | Mean Q-value: 3.8798	| Epsilon: 0.6027
+[EP 151/2000] -> Total reward: -39.0	| Stags: 0	| Maulings: 14	| Forage: 3 | Mean Q-value: 4.8363	| Epsilon: 0.4691
+[EP 201/2000] -> Total reward: -92.0	| Stags: 0	| Maulings: 31	| Forage: 1 | Mean Q-value: 5.6563	| Epsilon: 0.3651
+[EP 251/2000] -> Total reward: -53.0	| Stags: 0	| Maulings: 18	| Forage: 1 | Mean Q-value: 6.1859	| Epsilon: 0.2842
+[EP 301/2000] -> Total reward: -38.0	| Stags: 0	| Maulings: 13	| Forage: 1 | Mean Q-value: 6.3449	| Epsilon: 0.2212
+[EP 351/2000] -> Total reward: -16.0	| Stags: 0	| Maulings: 6	| Forage: 2 | Mean Q-value: 6.1148	| Epsilon: 0.1721
+[EP 401/2000] -> Total reward: -39.0	| Stags: 0	| Maulings: 14	| Forage: 3 | Mean Q-value: 5.3427	| Epsilon: 0.1340
+[EP 451/2000] -> Total reward: -21.0	| Stags: 0	| Maulings: 8	| Forage: 3 | Mean Q-value: 5.3590	| Epsilon: 0.1043
+[EP 501/2000] -> Total reward: -3.0	| Stags: 1	| Maulings: 6	| Forage: 5 | Mean Q-value: 6.2274	| Epsilon: 0.1000
+[EP 551/2000] -> Total reward: -16.0	| Stags: 0	| Maulings: 6	| Forage: 2 | Mean Q-value: 9.6274	| Epsilon: 0.1000
+[EP 601/2000] -> Total reward: 218.0	| Stags: 23	| Maulings: 5	| Forage: 3 | Mean Q-value: 15.4542	| Epsilon: 0.1000
+[EP 651/2000] -> Total reward: -27.0	| Stags: 0	| Maulings: 9	| Forage: 0 | Mean Q-value: 19.0137	| Epsilon: 0.1000
+[EP 701/2000] -> Total reward: 218.0	| Stags: 23	| Maulings: 4	| Forage: 0 | Mean Q-value: 23.0203	| Epsilon: 0.1000
+[EP 751/2000] -> Total reward: 209.0	| Stags: 21	| Maulings: 1	| Forage: 2 | Mean Q-value: 28.0652	| Epsilon: 0.1000
+[EP 801/2000] -> Total reward: 172.0	| Stags: 20	| Maulings: 10	| Forage: 2 | Mean Q-value: 31.2662	| Epsilon: 0.1000
+[EP 851/2000] -> Total reward: -411.0	| Stags: 0	| Maulings: 137	| Forage: 0 | Mean Q-value: 32.5309	| Epsilon: 0.1000
+[EP 901/2000] -> Total reward: 115.0	| Stags: 13	| Maulings: 5	| Forage: 0 | Mean Q-value: 34.2939	| Epsilon: 0.1000
+[EP 951/2000] -> Total reward: 152.0	| Stags: 20	| Maulings: 16	| Forage: 0 | Mean Q-value: 35.5081	| Epsilon: 0.1000
+[EP 1001/2000] -> Total reward: -92.0	| Stags: 10	| Maulings: 64	| Forage: 0 | Mean Q-value: 34.9525	| Epsilon: 0.1000
+[EP 1051/2000] -> Total reward: 177.0	| Stags: 18	| Maulings: 1	| Forage: 0 | Mean Q-value: 35.3513	| Epsilon: 0.1000
+[EP 1101/2000] -> Total reward: -233.0	| Stags: 0	| Maulings: 78	| Forage: 1 | Mean Q-value: 36.2683	| Epsilon: 0.1000
+[EP 1151/2000] -> Total reward: 139.0	| Stags: 19	| Maulings: 17	| Forage: 0 | Mean Q-value: 35.9473	| Epsilon: 0.1000
+[EP 1201/2000] -> Total reward: 131.0	| Stags: 17	| Maulings: 13	| Forage: 0 | Mean Q-value: 37.7692	| Epsilon: 0.1000
+[EP 1251/2000] -> Total reward: 225.0	| Stags: 24	| Maulings: 5	| Forage: 0 | Mean Q-value: 36.7701	| Epsilon: 0.1000
+[EP 1301/2000] -> Total reward: 57.0	| Stags: 14	| Maulings: 28	| Forage: 1 | Mean Q-value: 39.3821	| Epsilon: 0.1000
+[EP 1351/2000] -> Total reward: 201.0	| Stags: 21	| Maulings: 3	| Forage: 0 | Mean Q-value: 39.6797	| Epsilon: 0.1000
+[EP 1401/2000] -> Total reward: 188.0	| Stags: 20	| Maulings: 4	| Forage: 0 | Mean Q-value: 38.4386	| Epsilon: 0.1000
+[EP 1451/2000] -> Total reward: -22.0	| Stags: 1	| Maulings: 11	| Forage: 1 | Mean Q-value: 41.4804	| Epsilon: 0.1000
+[EP 1501/2000] -> Total reward: 182.0	| Stags: 20	| Maulings: 6	| Forage: 0 | Mean Q-value: 39.0902	| Epsilon: 0.1000
+[EP 1551/2000] -> Total reward: 157.0	| Stags: 18	| Maulings: 8	| Forage: 1 | Mean Q-value: 41.3323	| Epsilon: 0.1000
+[EP 1601/2000] -> Total reward: 174.0	| Stags: 19	| Maulings: 6	| Forage: 2 | Mean Q-value: 40.2427	| Epsilon: 0.1000
+[EP 1651/2000] -> Total reward: -12.0	| Stags: 0	| Maulings: 4	| Forage: 0 | Mean Q-value: 40.5763	| Epsilon: 0.1000
+[EP 1701/2000] -> Total reward: 59.0	| Stags: 13	| Maulings: 24	| Forage: 1 | Mean Q-value: 39.7207	| Epsilon: 0.1000
+[EP 1751/2000] -> Total reward: 192.0	| Stags: 21	| Maulings: 6	| Forage: 0 | Mean Q-value: 37.5074	| Epsilon: 0.1000
+[EP 1801/2000] -> Total reward: -12.0	| Stags: 0	| Maulings: 4	| Forage: 0 | Mean Q-value: 37.7361	| Epsilon: 0.1000
+[EP 1851/2000] -> Total reward: 70.0	| Stags: 16	| Maulings: 30	| Forage: 0 | Mean Q-value: 37.1753	| Epsilon: 0.1000
+[EP 1901/2000] -> Total reward: 173.0	| Stags: 20	| Maulings: 9	| Forage: 0 | Mean Q-value: 38.0279	| Epsilon: 0.1000
+[EP 1951/2000] -> Total reward: -285.0	| Stags: 0	| Maulings: 95	| Forage: 0 | Mean Q-value: 38.1620	| Epsilon: 0.1000

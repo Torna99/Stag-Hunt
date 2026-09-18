@@ -61,26 +61,18 @@ class DQNAgent:
         '''
         sample = random.random()
 
+
         ## Exploration
         if sample < self.epsilon:
-            return torch.tensor([[random.randrange(self.action_dim)]], dtype=torch.long)
+            return random.randrange(self.action_dim)
 
         ## Exploitation
+        state = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(self.device)
         with torch.no_grad():
             # t.max(1) will return the largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            return self.policy_net(state).max(1).indices.view(1, 1)
-
-    # def epsilon_decay_step(self):
-    #     '''
-    #     Decay the epsilon value.
-    #     '''
-    #     if self.epsilon > self.epsilon_min:
-    #         self.epsilon -= self.epsilon_decay
-    #         #self.epsilon *= self.epsilon_decay
-    #         if self.epsilon < self.epsilon_min:
-    #             self.epsilon = self.epsilon_min
+            return self.policy_net(state).max(1).indices.view(1, 1).item()
 
     def epsilon_decay_step(self):
         '''
@@ -96,7 +88,6 @@ class DQNAgent:
 
     def store_sample(self, state, action, reward, next_state, done):
         self.rep_memory.push(state, action, reward, next_state, done)
-
     
     def update_target_network(self):
         '''
@@ -120,8 +111,17 @@ class DQNAgent:
         states, actions, rewards, next_states, dones = zip(*samples)
 
         # Convert the samples to tensors
-        states = torch.cat(states, dim=0).to(self.device).float()
-        next_states = torch.cat(next_states, dim=0).to(self.device).float()
+        # states = torch.cat(states, dim=0).to(self.device).float()
+        # next_states = torch.cat(next_states, dim=0).to(self.device).float()
+        # actions = torch.tensor(
+        #     [a.item() if isinstance(a, torch.Tensor) else int(a) for a in actions],
+        #     dtype=torch.long,
+        #     device=self.device
+        # ).view(-1, 1)
+        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1, 1)
+        # dones = torch.tensor(dones, dtype=torch.float32, device=self.device).view(-1, 1)
+        states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
+        next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
         actions = torch.tensor(
             [a.item() if isinstance(a, torch.Tensor) else int(a) for a in actions],
             dtype=torch.long,
