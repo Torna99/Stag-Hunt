@@ -13,7 +13,7 @@ def plot_training_results(rewards, stags, maulings, forage, window=50):
     ma_episodes = np.arange(window, len(rewards) + 1) if len(rewards) >= window else episodes
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    fig.suptitle("Multi-Agent DQN: Stag Hunt Training Results", fontsize=14, fontweight='bold')
+    fig.suptitle("Multi-Agent: Stag Hunt Training Results", fontsize=14, fontweight='bold')
 
     # 1. Total Reward per Episode
     ax1.plot(episodes, rewards, alpha=0.25, color="steelblue", label="Raw")

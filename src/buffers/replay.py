@@ -3,7 +3,6 @@
 ### Here we implement the replay buffer, which is used to store the experiences of the agent during training.
 ### It allows the agent to learn from past expereience, to stabilze the training and to not be biased by the most recent experiences.
 
-import torch
 from collections import namedtuple, deque
 import random
 

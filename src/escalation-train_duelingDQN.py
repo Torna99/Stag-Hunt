@@ -18,7 +18,7 @@ from pathlib import Path
 ### ================================================================================================================
 ### Setting variables
 ### ================================================================================================================
-GAME = "Hunt"  # or "Harvest" or "Escalation"
+GAME = "Escalation"  # or "Harvest" or "Escalation"
 
 MAX_STEPS_PER_EPISODE = 200
 MAX_EPISODES = 2000
@@ -27,10 +27,9 @@ MAX_EPISODES = 2000
 GRID_SIZE = 5
 OBS_TYPE = "coords"  # or "image"
 RENDER_MODE = None # None of "human"
-FORAGE_QTA = 2
-FORAGE_REWARD = 1
-STAG_REWARD = 5
-MAULING_PENALTY = -3
+
+STREAK_BREAK_PUNISHMENT_FACTOR = 0.5
+
 
 # Training hyperparam
 BASTCH_SIZE = 64
@@ -56,14 +55,14 @@ torch.manual_seed(seed)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(seed)
 
-# setting variable to store the training results
-BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_NAME = "duelingDQN_2agents"
-MODEL_DIR = BASE_DIR / "saved_models"
-RESULTS_DIR = BASE_DIR / "results"
+# # setting variable to store the training results
+# BASE_DIR = Path(__file__).resolve().parent.parent
+# MODEL_NAME = "duelingDQN_2agents"
+# MODEL_DIR = BASE_DIR / "saved_models"
+# RESULTS_DIR = BASE_DIR / "results"
 
-MODEL_DIR.mkdir(parents=True, exist_ok=True)
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+# MODEL_DIR.mkdir(parents=True, exist_ok=True)
+# RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 ### ================================================================================================================
 ### Main
@@ -72,15 +71,12 @@ if __name__ == "__main__":
 
     # Create the environment
     env = gym.make(
-        "StagHunt-Hunt-v0",
+        "StagHunt-Escalation-v0",
         grid_size=(GRID_SIZE, GRID_SIZE),
         obs_type=OBS_TYPE,           
         flip_obs=True,
-        forage_quantity=FORAGE_QTA,
-        forage_reward=FORAGE_REWARD,
-        stag_reward=STAG_REWARD,
-        mauling_punishment=MAULING_PENALTY,
         max_episode_steps=MAX_STEPS_PER_EPISODE,
+        streak_break_punishment_factor=STREAK_BREAK_PUNISHMENT_FACTOR
     )
     # ensure reproducibility in the env
     env.reset(seed=seed)
@@ -96,27 +92,25 @@ if __name__ == "__main__":
     agent2 = DQNAgent(state_dim, action_dim, lr=LR, gamma=GAMMA, epsilon=EPS_START, epsilon_decay=EPS_DECAY, epsilon_min=EPS_END, buffer_size = REPLAY_BUFFER_SIZE, batch_size=BASTCH_SIZE, device=device)
 
     # Training loop
-    total_rewrds = []
-    total_stag_hunted = []
-    total_maulings = []
-    total_forage = []
-    total_q_values = []
-    epsilon_values = [] 
+    total_rewards = []
+    max_streak = []
+    tot_cooperation_steps = []
+    
 
     tot_step = 0
     for episode in range(MAX_EPISODES):
         # initialize the environment and get the first state of the episode
-        state, info = env.reset()
+        # state, info = env.reset(seed=seed + episode)  # Ensure different seed for each episode
+        state, info = env.reset()  # Ensure different seed for each episode
 
         state_agent1 = torch.tensor(state[0], dtype=torch.float32).unsqueeze(0).to(device)
         state_agent2 = torch.tensor(state[1], dtype=torch.float32).unsqueeze(0).to(device)
 
         total_reward_agent1 = 0
         total_reward_agent2 = 0
-        tot_stag = 0
-        tot_maul = 0
-        tot_forage = 0
-        episode_q_values = []
+        current_streak = 0
+        current_cooperation_steps = 0
+        max_steak_in_episode = 0
 
         done = False
         while not done:
@@ -135,10 +129,13 @@ if __name__ == "__main__":
             reward_agent1 = reward[0]
             reward_agent2 = reward[1]
 
-            if reward_agent1 == STAG_REWARD and reward_agent2 == STAG_REWARD:
-                tot_stag += 1
-            tot_maul += (reward_agent1 == MAULING_PENALTY) + (reward_agent2 == MAULING_PENALTY)
-            tot_forage += (reward_agent1 == FORAGE_REWARD) + (reward_agent2 == FORAGE_REWARD)
+            if reward_agent1 > 0 and reward_agent2 > 0:
+                current_streak += 1
+                current_cooperation_steps += 1
+                if current_streak > max_steak_in_episode:
+                    max_steak_in_episode = current_streak
+            else:
+                current_streak = 0
 
             # Convert the next state to tensors and store the transition in memory
             next_state_agent1 = torch.tensor(next_state[0], dtype=torch.float32).unsqueeze(0).to(device)
@@ -150,12 +147,6 @@ if __name__ == "__main__":
             # Train step and update of the epsilon value (log the mean Q-value for each agent to track the overestimation problem)
             q_val1 = agent1.optimize_model()
             q_val2 = agent2.optimize_model()
-
-            if q_val1 is not None and q_val2 is not None:
-                episode_q_values.append((q_val1 + q_val2) / 2.0)
-
-            # agent1.epsilon_decay_step()
-            # agent2.epsilon_decay_step()
 
             # update the target networks every C steps
             tot_step += 1
@@ -174,15 +165,12 @@ if __name__ == "__main__":
         agent1.epsilon_decay_step()
         agent2.epsilon_decay_step()
 
-        epsilon_values.append(agent1.get_epsilon())  # Assuming both agents have the same epsilon decay
-        total_rewrds.append(total_reward_agent1 + total_reward_agent2)
-        total_stag_hunted.append(tot_stag)
-        total_maulings.append(tot_maul)
-        total_forage.append(tot_forage)
-        total_q_values.append(np.mean(episode_q_values))
+        total_rewards.append(total_reward_agent1 + total_reward_agent2)
+        max_streak.append(max_steak_in_episode)
+        tot_cooperation_steps.append(current_cooperation_steps)
 
         if episode % 50 == 0 or episode == 0:
-            print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage}")
+            print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Max Streak: {max_steak_in_episode}\t| Cooperation Steps: {current_cooperation_steps}")
 
 
             
@@ -190,18 +178,40 @@ if __name__ == "__main__":
 ### Plotting the training results and saving 
 ### ================================================================================================================
 
-torch.save(agent1.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent1.pth")
-torch.save(agent2.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent2.pth")
-utils.save_train_metrics(rewards=total_rewrds, stags=total_stag_hunted, maulings=total_maulings, forage=total_forage, q_values=total_q_values, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
+# torch.save(agent1.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent1.pth")
+# torch.save(agent2.policy_net.state_dict(), f"{MODEL_DIR}/{MODEL_NAME}_agent2.pth")
+# utils.save_train_metrics(rewards=total_rewards, stags=total_stag_hunted, maulings=total_maulings, forage=total_forage, q_values=total_q_values, filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv")
 
-utils.plot_training_results(
-    rewards=total_rewrds,
-    stags=total_stag_hunted,
-    maulings=total_maulings,
-    forage=total_forage,
-    window=50
-)
-utils.plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
+# utils.plot_training_results(
+#     rewards=total_rewards,
+#     stags=total_stag_hunted,
+#     maulings=total_maulings,
+#     forage=total_forage,
+#     window=50
+# )
+# utils.plot_epsilon_trend(epsilon_values=epsilon_values, epsilon_min=EPS_END, epsilon_decay=EPS_DECAY)
+
+import matplotlib.pyplot as plt
+
+fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+# Plot total rewards
+axs[0].plot(total_rewards, label='Total Rewards', color='blue')
+axs[0].set_title('Total Rewards per Episode')
+axs[0].set_xlabel('Episode')
+axs[0].set_ylabel('Total Reward')
+# Plot max streak
+axs[1].plot(max_streak, label='Max Streak', color='orange')
+axs[1].set_title('Max Streak per Episode')
+axs[1].set_xlabel('Episode')
+axs[1].set_ylabel('Max Streak')
+# Plot total cooperation steps
+axs[2].plot(tot_cooperation_steps, label='Total Cooperation Steps', color='green')
+axs[2].set_title('Total Cooperation Steps per Episode')
+axs[2].set_xlabel('Episode')
+axs[2].set_ylabel('Total Cooperation Steps')
+
+plt.tight_layout()
+plt.show()
 
 
 

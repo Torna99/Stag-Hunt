@@ -21,7 +21,7 @@ import numpy as np
 
 class DQNAgent:
 
-    def __init__(self, state_dim, action_dim, lr=1e-3, gamma=0.99, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.1, buffer_size = 1e4, batch_size=32, device="cpu"):
+    def __init__(self, state_dim, action_dim, lr=1e-3, gamma=0.99, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.1, buffer_size = 1e4, batch_size=32, device="cpu", **kwargs):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.device = device

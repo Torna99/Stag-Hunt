@@ -10,7 +10,7 @@ import numpy as np
 
 class A2CAgent:
 
-    def __init__(self, state_dim, action_dim, lr = 1e-3, gamma=0.99, entropy_coeff=0.001, critic_coeff=0.5, device="cpu"):
+    def __init__(self, state_dim, action_dim, lr = 1e-3, gamma=0.99, entropy_coeff=0.001, critic_coeff=0.5, device="cpu", **kwargs):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.device = device
