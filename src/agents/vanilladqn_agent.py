@@ -1,13 +1,15 @@
 ### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
 ###
-### In this code we implement a standard DQN agent. 
+### In this code we implement a standard DQN agent:
+###     We'll use a Policy Network (Q-Network) to approximate the Q-function, and a Replay Memory to 
+###     store experiences  to avoid correlation between consecutive updates.The agent will use an 
+###     epsilon-greedy policy for action selection (this is an off-policy algorithm). 
 
 import torch 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optimizer
 
-from buffers.replay import ReplayMemory, Sample
+from buffers.replay import ReplayMemory
 from models.dqn import DQN
 
 import random
@@ -28,10 +30,11 @@ class DQNAgent:
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
+
         self.batch_size = batch_size
         self.buffer_size = buffer_size
 
-        ## instatiate the replay memory
+        ## instatiate the replay memory (to avoid correlation between consecutive updates)
         self.rep_memory = ReplayMemory(int(buffer_size))
 
         ## instatiate the policy
@@ -61,7 +64,7 @@ class DQNAgent:
 
     def epsilon_decay_step(self):
         '''
-        Decay the epsilon value.
+        Decay the epsilon value in a multiplicative manner until it reaches the minimum value.
         '''
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
@@ -77,27 +80,22 @@ class DQNAgent:
     def optimize_model(self):
         '''
         This function is the single train step of the DQN agent. 
-        It samples a batch of experiences from the replay memory, computes the loss, and updates the policy network.
+            1) Sample a batch of experiences from the replay memory to ensure that the updates are uncorrelated and more stable
+            2) Compute the Q-values for the current state-action pairs using the policy network
+            3) Compute the target: y = r + gamma * max_a' Q(s', a', theta) for non-terminal states, and y = r for terminal states
+            4) Compute the loss between the current Q-values and the target Q-values
+            5) Perform a gradient descent step to update the policy network parameters
         '''
 
         # if rep memory is not filled, return
         if len(self.rep_memory) < self.batch_size:
             return 
 
-        # sampling 
+        ## 1) Sampling 
         samples = self.rep_memory.samples_batch(self.batch_size)
         states, actions, rewards, next_states, dones = zip(*samples)
 
         # Convert the samples to tensors
-        # states = torch.cat(states, dim=0).to(self.device).float()
-        # next_states = torch.cat(next_states, dim=0).to(self.device).float()
-        # actions = torch.tensor(
-        #     [a.item() if isinstance(a, torch.Tensor) else int(a) for a in actions],
-        #     dtype=torch.long,
-        #     device=self.device
-        # ).view(-1, 1)
-        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1, 1)
-        # dones = torch.tensor(dones, dtype=torch.float32, device=self.device).view(-1, 1)
         states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
         next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
         actions = torch.tensor(
@@ -108,23 +106,23 @@ class DQNAgent:
         rewards = torch.tensor(np.array(rewards), dtype=torch.float32).to(self.device).view(-1, 1)
         dones = torch.tensor(np.array(dones), dtype=torch.float32).to(self.device).view(-1, 1)
         
-        # compute Q(s_t, a)
+        ## 2) compute Q(s_t, a)
         state_action_values = self.policy_net(states).gather(1, actions)
 
+        ## 3) compute target 
         # y = r + gamma * max_a' Q(s', a', theta) for non-terminal states
         with torch.no_grad():
-            # get the q values for the next states
+            # get the q values for the next states: max_a' Q(s', a', theta)
             next_state_values = self.policy_net(next_states).max(1)[0].unsqueeze(1)
-            #best_next_actions = self.policy_net(next_states).argmax(dim=1, keepdim=True)
 
             # compute the expected Q values (target q for the loss function)
             # use (1 - dones) to handle the terminal states
             y_j = rewards + (self.gamma * next_state_values * (1 - dones))
 
-        # compute the loss
+        ## 4) compute the loss between the current Q-values and the target Q-values
         loss = self.loss(state_action_values, y_j)
 
-        # optimize the model 
+        ## 5) optimize the model 
         self.optimizer.zero_grad() 
         loss.backward()
         self.optimizer.step()

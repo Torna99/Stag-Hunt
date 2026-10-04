@@ -1,9 +1,9 @@
 import torch 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optimizer
 
 from models.a2c import A2CNet
+from buffers.a2c_memory import Memory
 
 import random
 import numpy as np
@@ -25,73 +25,49 @@ class A2CAgent:
         self.acNet = A2CNet(state_dim, action_dim).to(self.device)
         self.optimizer = optimizer.Adam(self.acNet.parameters(), lr=self.lr)
 
-        ## TODO: cosider using a buffer 
-        self.states = []
-        self.actions = []
-        self.rewards = []
-        self.log_probs = []
-        self.values = []
-        self.dones = []
+        self.memory = Memory()
 
 
     def select_action(self, state):
         '''
         Select an action based on the current state using the actor network.
-        
-        Args:
-            state (torch.Tensor): The current state of the environment.
-        Returns:
-            action (torch.Tensor): The selected action.
-            log_prob (torch.Tensor): The log probability of the selected action.
+        1) extract the logits and value from the actor-critic network
+        2) create a categorical distribution from the logits
+        3) sample an action from the distribution
+        4) return the action, log probability of the action, and the value of the state
         '''
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device) 
 
+        ## 1) extract logits and value network
         logits, v_state = self.acNet(state)
+
+        ## 2) create categorical distribution
         action_distribution = torch.distributions.Categorical(logits=logits)
 
+        ## 3) sample action from distribution
         action = action_distribution.sample()
+
         log_prob = action_distribution.log_prob(action)
 
-        return action, log_prob, v_state
+        ## 4) return 
+        return action.item(), log_prob, v_state
 
     def store_transition(self, state, action, reward, log_prob, value, done):
         '''
         Store the transition in the agent's memory.
-        
-        Args:
-            state (torch.Tensor): The current state of the environment.
-            action (torch.Tensor): The action taken by the agent.
-            reward (float): The reward received after taking the action.
-            log_prob (torch.Tensor): The log probability of the selected action.
-            value (torch.Tensor): The value of the current state as estimated by the critic.
-            done (bool): Whether the episode has ended.
         '''
-        self.states.append(state)
-        self.actions.append(action)
-        self.rewards.append(reward)
-        self.log_probs.append(log_prob)
-        self.values.append(value)
-        self.dones.append(done)
+        self.memory.push(state, action, reward, log_prob, value, done)
 
     def wipe_memory(self):
         '''
         Clear the agent's memory.
         '''
-        self.states = []
-        self.actions = []
-        self.rewards = []
-        self.log_probs = []
-        self.values = []
-        self.dones = []
+        self.memory.wipe()
 
-    def discounted_rewards(self, rewards, dones, values, next_value):
+    def discounted_rewards(self, rewards, dones, next_value):
         '''
         Compute the discounted rewards for the stored transitions.
-        
-        Args:
-            next_value (float): The value of the next state.
-            done (bool): Whether the episode has ended.
-        Returns:
-            discounted_rewards (torch.Tensor): The discounted rewards.
+        Following the formula: G_t = R_t + gamma * G_{t+1} * (1 - done)
         '''
         disc_returns = torch.zeros(len(rewards), dtype=torch.float32).to(self.device)
         for i in reversed(range(len(rewards))):
@@ -102,46 +78,53 @@ class A2CAgent:
     def optimize_model(self, next_state, done):
         '''
         Optimize the actor and critic networks based on the stored transitions.
-        
-        Args:
-            next_state (torch.Tensor): The next state of the environment after the last action.
-            done (bool): Whether the episode has ended.
+        1) Compute the discounted returns for the stored transitions.
+        2) Compute the advantages: A(s, a) = R - V(s)
+        3) Compute the actor loss: L_actor = -log_prob * A(s, a)
+        4) Compute the critic loss: L_critic = MSE(V(s), R)
+        5) Compute the entropy regularization term
+        6) Compute the total loss: L_total = L_actor + critic_coeff *   L_critic - entropy_coeff * entropy_regularization
+        7) Backpropagate the total loss and update the network parameters.
         '''
 
-        if len(self.rewards) == 0:
-            #return 0.0
-            return None
+        next_state = torch.FloatTensor(next_state).unsqueeze(0).to(self.device)  # shape: (1, state_dim)
 
+        transitions = self.memory.get_all()
+        if len(transitions) == 0:
+            return None
+        self.states, self.actions, self.rewards, self.log_probs, self.values, self.dones = zip(*transitions)
+
+        ## 1) Compute the discounted returns
         with torch.no_grad():
             _, next_value = self.acNet(next_state)
             next_value = next_value.item() if not done else 0.0
 
-        discounted_returns = self.discounted_rewards(self.rewards, self.dones, self.values, next_value).unsqueeze(1).to(self.device)  # shape: (T, 1)
+        discounted_returns = self.discounted_rewards(self.rewards, self.dones, next_value).unsqueeze(1).to(self.device)  # shape: (T, 1)
 
         # convert to Tensors 
-        values = torch.cat(self.values)
-        log_probs = torch.cat(self.log_probs).unsqueeze(1)
-
-        # Advantage: R - V(s) 
+        values = torch.cat(self.values)                      
+        log_probs = torch.cat(self.log_probs).unsqueeze(1)    
+         
+        ## 2) Compute the advantages [A(s, a) = R - V(s)]
         advantages = discounted_returns - values
         # Normalize the advantages to have mean 0 and std 1
-        # if advantages.numel() > 1:
-        #     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        if advantages.numel() > 1:
+            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
 
-        # compute losses
-        critic_loss = F.mse_loss(values, discounted_returns)
+        ## 3, 4) Compute losses
+        critic_loss = torch.nn.functional.mse_loss(values, discounted_returns)
         actor_loss = -(log_probs * advantages.detach()).mean()
 
-        # Entropy regularization
-        states_tensor = torch.cat(self.states)
+        ## 5) Compute the entropy regularization term
+        states_tensor = torch.tensor(self.states, dtype=torch.float32).to(self.device)
         logits, _ = self.acNet(states_tensor)
         entropy = torch.distributions.Categorical(logits=logits).entropy().mean()
 
-        # Total loss
+        ## 6) Compute the total loss
         total_loss = actor_loss + self.critic_coeff * critic_loss - self.entropy_coeff * entropy    
 
-        # Optimize the networks
+        ## 7) Backpropagate the total loss and update 
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()

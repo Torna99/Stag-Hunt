@@ -2,8 +2,8 @@
 ###
 ###
 ### Here we implement the Double DQN algorithm, which is an improvement over the standard DQN algorithm. 
-### The idea is to decouple the action selection from the action evaluation in the target Q-value calculation, to help
-### reduce overestimation bias in Q-learning.
+### The idea is to decouple the action selection from the action evaluation in the target Q-value calculation, 
+### to help reduce overestimation bias in Q-learning.
 
 import torch 
 import torch.nn as nn
@@ -101,20 +101,10 @@ class DQNAgent:
         if len(self.rep_memory) < self.batch_size:
             return 
 
-        # sampling 
+        # sampling and converting to tensors
         samples = self.rep_memory.samples_batch(self.batch_size)
         states, actions, rewards, next_states, dones = zip(*samples)
 
-        # Convert the samples to tensors
-        # states = torch.cat(states, dim=0).to(self.device).float()
-        # next_states = torch.cat(next_states, dim=0).to(self.device).float()
-        # actions = torch.tensor(
-        #     [a.item() if isinstance(a, torch.Tensor) else int(a) for a in actions],
-        #     dtype=torch.long,
-        #     device=self.device
-        # ).view(-1, 1)
-        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1, 1)
-        # dones = torch.tensor(dones, dtype=torch.float32, device=self.device).view(-1, 1)
         states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
         next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
         actions = torch.tensor(
@@ -151,7 +141,6 @@ class DQNAgent:
         self.optimizer.zero_grad() 
         loss.backward()
         self.optimizer.step()
-
 
         # return the mean of the estimated q-values for the current state-action pairs to monitor the overestimation bias during training
         return state_action_values.mean().item()

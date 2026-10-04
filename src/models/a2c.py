@@ -1,9 +1,9 @@
-import torch 
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optimizer
-import numpy as np
+### Here we implement the A2C network architecture, which consists of a shared feature extractor
+### followed by separate actor and critic. The actor outputs action logits, 
+### while the critic outputs state value V(s) (scalar value).
+### This architecture allows the agent to learn both policy and value functions simultaneously. 
 
+import torch.nn as nn
 
 class A2CNet(nn.Module):
 
@@ -19,7 +19,7 @@ class A2CNet(nn.Module):
         self.actor_layers = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim // 2),
             nn.ReLU(),
-            nn.Linear(hidden_dim // 2, outdim),
+            nn.Linear(hidden_dim // 2, outdim), ## return logits for each action
         )
 
         self.critic_layers = nn.Sequential(

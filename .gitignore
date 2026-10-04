@@ -3,14 +3,15 @@ venv/
 env/
 .env/
 
-# Bytecode e cache di Python
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 
-# File di sistema Mac
 .DS_Store
 
-# Output pesanti (opzionale, decommenta se non vuoi tracciare i pesi)
 saved_models/*
+results/*
+logs/*
+
+train_all.sh

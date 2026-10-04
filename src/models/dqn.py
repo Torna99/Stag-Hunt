@@ -8,17 +8,6 @@
 
 import torch 
 import torch.nn as nn
-import torch.optim as optimizer
-import torch.nn.functional as F
-
-# seed = 42
-# random.seed(seed)
-# torch.manual_seed(seed)
-# env.reset(seed=seed)
-# env.action_space.seed(seed)
-# env.observation_space.seed(seed)
-# if torch.cuda.is_available():
-#     torch.cuda.manual_seed(seed)
 
 class DQN(nn.Module):
 

@@ -1,6 +1,7 @@
+### Here we define the actor and critic networks used in the MAPPO algorithm.
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class Actor(nn.Module):
     '''

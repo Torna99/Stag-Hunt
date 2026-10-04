@@ -39,10 +39,7 @@ argument_parser.add_argument("--max_episodes", type=int, default=2000, help="Max
 argument_parser.add_argument("--max_steps_per_episode", type=int, default=200, help="Maximum number of steps per episode")
 
 argument_parser.add_argument("--grid_size", type=int, default=5, help="Size of the grid for the environment")
-argument_parser.add_argument("--forage_qta", type=int, default=2, help="Quantity of forage available in the environment")
-argument_parser.add_argument("--forage_reward", type=int, default=1, help="Reward for foraging")
-argument_parser.add_argument("--stag_reward", type=int, default=5, help="Reward for hunting stag")
-argument_parser.add_argument("--mauling_penalty", type=int, default=-3, help="Penalty for mauling")
+argument_parser.add_argument("--punishment_factor", type=float, default=0.5, help="Factor for the punishment in the environment")
 
 argument_parser.add_argument("--discount_factor", type=float, default=0.99, help="Discount factor for future rewards")
 argument_parser.add_argument("--learning_rate", type=float, default=5e-4, help="Learning rate for the optimizer")
@@ -66,10 +63,7 @@ MAX_STEPS_PER_EPISODE = args.max_steps_per_episode
 
 OBS_TYPE = "coords"  # or "image"
 GRID_SIZE = args.grid_size
-FORAGE_QTA = args.forage_qta
-FORAGE_REWARD = args.forage_reward
-STAG_REWARD = args.stag_reward
-MAULING_PENALTY = args.mauling_penalty
+STREAK_BREAK_PUNISHMENT_FACTOR = args.punishment_factor
 
 ALGORITHM = args.algorithm
 REPLAY_BUFFER_SIZE = args.replay_buffer_size
@@ -104,7 +98,7 @@ elif ALGORITHM == "mappo":
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-GAME = "StagHunt"
+GAME = "Escalation"
 RESULTS_DIR = BASE_DIR / "results" / GAME / args.save_dir
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_NAME = f"{ALGORITHM}_{NUM_AGENTS}agents"
@@ -120,15 +114,12 @@ if __name__ == "__main__":
 
     ### Creation of the environment
     env = gym.make(
-        "StagHunt-Hunt-v0",
+        "StagHunt-Escalation-v0",
         grid_size=(GRID_SIZE, GRID_SIZE),
         obs_type=OBS_TYPE,           
         flip_obs=True,
-        forage_quantity=FORAGE_QTA,
-        forage_reward=FORAGE_REWARD,
-        stag_reward=STAG_REWARD,
-        mauling_punishment=MAULING_PENALTY,
         max_episode_steps=MAX_STEPS_PER_EPISODE,
+        streak_break_punishment_factor=STREAK_BREAK_PUNISHMENT_FACTOR
     )
 
     env.reset(seed=seed)
@@ -199,16 +190,15 @@ if __name__ == "__main__":
                 entropy_coeff=ENTROPY_COEFF,
                 critic_coeff=CRITIC_COEFF,
                 device=device
-        )
+            )
 
     ### Training loop
     total_rewards = []
-    total_stag_hunted = []
-    total_maulings = []
-    total_forage = []
-    total_q_values = []
+    max_streak = []
+    tot_cooperation_steps = []
     epsilon_values = []
     entropy_values = []
+    total_q_values = []
 
     tot_step = 0
     for episode in range(MAX_EPISODES):
@@ -219,9 +209,10 @@ if __name__ == "__main__":
 
         total_reward_agent1 = 0
         total_reward_agent2 = 0
-        tot_stag = 0
-        tot_maul = 0
-        tot_forage = 0
+        current_streak = 0
+        current_streak = 0
+        current_cooperation_steps = 0
+        max_steak_in_episode = 0
         episode_q_values = []
 
         done = False
@@ -234,8 +225,8 @@ if __name__ == "__main__":
                 a1, log_prob1 = mappo_agent.select_action(state_agent1, agent_id=1)
                 a2, log_prob2 = mappo_agent.select_action(state_agent2, agent_id=2)
             elif ALGORITHM == "a2c":
-                a1, log_prob1, v1 = agent1.select_action(state_agent1)
-                a2, log_prob2, v2 = agent2.select_action(state_agent2)
+                            a1, log_prob1, v1 = agent1.select_action(state_agent1)
+                            a2, log_prob2, v2 = agent2.select_action(state_agent2)
 
             # 2) Execute the actions and observe the next state and reward
             next_state, reward, terminated, truncated, info = env.step([a1, a2])
@@ -244,10 +235,13 @@ if __name__ == "__main__":
             # 3) Analize the rewards for each agent
             reward_agent1 = reward[0]
             reward_agent2 = reward[1]
-            if reward_agent1 == STAG_REWARD and reward_agent2 == STAG_REWARD:
-                tot_stag += 1
-            tot_maul += (reward_agent1 == MAULING_PENALTY) + (reward_agent2 == MAULING_PENALTY)
-            tot_forage += (reward_agent1 == FORAGE_REWARD) + (reward_agent2 == FORAGE_REWARD)  
+            if reward_agent1 > 0 and reward_agent2 > 0:
+                current_streak += 1
+                current_cooperation_steps += 1
+                if current_streak > max_steak_in_episode:
+                    max_steak_in_episode = current_streak
+            else:
+                current_streak = 0 
 
             # 4) Store the transition in memory
             next_state_agent1 = next_state[0]
@@ -283,7 +277,7 @@ if __name__ == "__main__":
                     episode_q_values.append((q_val1 + q_val2) / 2.0)
 
             tot_step += 1
-            if ALGORITHM in ["standardDQN", "doubleDQN", "duelingDQN"] and tot_step % C == 0 and tot_step > 0:
+            if ALGORITHM in ["standardDQN","doubleDQN", "duelingDQN"] and tot_step % C == 0 and tot_step > 0:
                 agent1.update_target_network()
                 agent2.update_target_network()
 
@@ -326,33 +320,29 @@ if __name__ == "__main__":
             entropy_values.append(agent1.entropy_coeff)
             total_q_values.append(0.0)  # Placeholder for A2C, as it doesn't use Q-values
         total_rewards.append(total_reward_agent1 + total_reward_agent2)
-        total_stag_hunted.append(tot_stag)
-        total_maulings.append(tot_maul)
-        total_forage.append(tot_forage)
+        max_streak.append(max_steak_in_episode)
+        tot_cooperation_steps.append(current_cooperation_steps)
 
         if episode % 50 == 0 or episode == 0:
             if ALGORITHM in ["vanillaDQN", "standardDQN", "doubleDQN", "duelingDQN"]:
-                print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage} | Mean Q-value: {np.mean(episode_q_values):.4f}\t| Epsilon: {agent1.get_epsilon():.4f}")
+                print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Max Streak: {max_streak[-1]}\t| Cooperation Steps: {tot_cooperation_steps[-1]}\t| Mean Q-value: {np.mean(episode_q_values):.4f}\t| Epsilon: {agent1.get_epsilon():.4f}")
             elif ALGORITHM == "mappo":
-                print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage} | Entropy Coeff: {mappo_agent.entropy_coeff:.3f}\t| Actor LR: {mappo_agent.a_lr:.6f}\t| Critic LR: {mappo_agent.c_lr:.6f}")
+                print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Max Streak: {max_streak[-1]}\t| Cooperation Steps: {tot_cooperation_steps[-1]}\t| Entropy Coeff: {mappo_agent.entropy_coeff:.3f}\t| Actor LR: {mappo_agent.a_lr:.6f}\t| Critic LR: {mappo_agent.c_lr:.6f}")
             elif ALGORITHM == "a2c":
-                print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Stags: {tot_stag}\t| Maulings: {tot_maul}\t| Forage: {tot_forage} | Entropy Coeff: {agent1.entropy_coeff:.3f}")
+                print(f"[EP {episode+1}/{MAX_EPISODES}] -> Total reward: {total_reward_agent1 + total_reward_agent2:.1f}\t| Max Streak: {max_streak[-1]}\t| Cooperation Steps: {tot_cooperation_steps[-1]}\t| Entropy Coeff: {agent1.entropy_coeff:.3f}")
 
     ### Save the results and models
-    utils.save_train_metrics(
-        rewards=total_rewards, 
-        stags=total_stag_hunted, 
-        maulings=total_maulings, 
-        q_values=total_q_values, 
-        forage=total_forage, 
-        filepath=f"{RESULTS_DIR}/{MODEL_NAME}_train_metrics.csv"
+    utils.save_escalation_train_metrics(
+        rewards=total_rewards,
+        max_streak=max_streak,
+        cooperation_steps=tot_cooperation_steps,
+        filepath=f"{RESULTS_DIR}/{MODEL_NAME}_escalation_train_metrics.csv"
     )
 
-    utils.plot_training_results(
+    utils.plot_escalation_training_results(
         rewards=total_rewards,
-        stags=total_stag_hunted,
-        maulings=total_maulings,
-        forage=total_forage,
+        max_streak=max_streak,
+        cooperation_steps=tot_cooperation_steps,
         window=50
     )
 

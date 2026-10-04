@@ -2,10 +2,11 @@
 ###
 ###
 ### Here we implement the Dueling DQN algorithm, which is an extension of the DQN algorithm. 
-### The main idea is to separate the estimation of the Q-function and the advantage function (how good each action is in state s),
-### to allow for more efficient learning and better generalization.
-### The modification to the architecture does not change the algorithm of traing, so it can be used with any DQN variant (Vanilla, Double, etc.).
-### We'll implement it with the Double DQN algorithm. 
+### The main idea is to separate the estimation of the Q-values and the advantage function 
+### (how good each action is in state s), to allow for more efficient learning and better 
+### generalization. The modification to the architecture does not change the algorithm of 
+### training, so it can be used with any DQN variant (Vanilla, Double, etc.). We'll implement 
+### it with the Double DQN algorithm. 
 
 
 import torch 
@@ -71,15 +72,6 @@ class DQNAgent:
             # found, so we pick action with the larger expected reward.
             return self.policy_net(state).max(1).indices.view(1, 1).item()
 
-    # def epsilon_decay_step(self):
-    #     '''
-    #     Decay the epsilon value.
-    #     '''
-    #     if self.epsilon > self.epsilon_min:
-    #         self.epsilon -= self.epsilon_decay
-    #         #self.epsilon *= self.epsilon_decay
-    #         if self.epsilon < self.epsilon_min:
-    #             self.epsilon = self.epsilon_min
 
     def epsilon_decay_step(self):
         '''
@@ -118,16 +110,6 @@ class DQNAgent:
         samples = self.rep_memory.samples_batch(self.batch_size)
         states, actions, rewards, next_states, dones = zip(*samples)
 
-        # Convert the samples to tensors
-        # states = torch.cat(states, dim=0).to(self.device).float()
-        # next_states = torch.cat(next_states, dim=0).to(self.device).float()
-        # actions = torch.tensor(
-        #     [a.item() if isinstance(a, torch.Tensor) else int(a) for a in actions],
-        #     dtype=torch.long,
-        #     device=self.device
-        # ).view(-1, 1)
-        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1, 1)
-        # dones = torch.tensor(dones, dtype=torch.float32, device=self.device).view(-1, 1)
         states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
         next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
         actions = torch.tensor(

@@ -12,7 +12,6 @@
 
 import torch 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optimizer
 
 from buffers.replay import ReplayMemory, Sample
@@ -98,8 +97,9 @@ class DQNAgent:
 
     def optimize_model(self):
         '''
-        This function is the single train step of the DQN agent. 
-        It samples a batch of experiences from the replay memory, computes the loss, and updates the networks.
+        This function is the single train step of the DQN agent.
+        The main difference with the vanilla DQN is that we use the target network to compute the target Q-values, 
+        which are more stable and lead to a more stable learning process. 
         '''
 
         # if rep memory is not filled, return
@@ -110,16 +110,6 @@ class DQNAgent:
         samples = self.rep_memory.samples_batch(self.batch_size)
         states, actions, rewards, next_states, dones = zip(*samples)
 
-        # Convert the samples to tensors
-        # states = torch.cat(states, dim=0).to(self.device).float()
-        # next_states = torch.cat(next_states, dim=0).to(self.device).float()
-        # actions = torch.tensor(
-        #     [a.item() if isinstance(a, torch.Tensor) else int(a) for a in actions],
-        #     dtype=torch.long,
-        #     device=self.device
-        # ).view(-1, 1)
-        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1, 1)
-        # dones = torch.tensor(dones, dtype=torch.float32, device=self.device).view(-1, 1)
         states = torch.tensor(np.array(states), dtype=torch.float32).to(self.device)
         next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(self.device)
         actions = torch.tensor(
@@ -136,15 +126,19 @@ class DQNAgent:
         # y = r + gamma * max_a' Q(s', a', theta_target) for non-terminal states
         with torch.no_grad():
 
-            # evaluate the target Q-values using the target network for the next states
-            next_state_values = self.target_net(next_states).max(1)[0].unsqueeze(1)
+            ###
+            ### Here we use the target network to compute the target Q-values for the next states.
+            ### Evaluate the target Q-values using the target network for the next states
+            ### next_state_values = max_a' Q(s',a', theta_target)
+            ###
+            next_state_action_values = self.target_net(next_states).max(1)[0].unsqueeze(1)
 
-            # temporal difference target: r + gamma * max_a' Q(s',a', theta_target)
-            expected_state_action_values = rewards + (self.gamma * next_state_values * (1 - dones))
+            # target: r + gamma * max_a' Q(s',a', theta_target)
+            target = rewards + (self.gamma * next_state_action_values * (1 - dones))
 
 
         # compute the loss
-        loss = self.loss(state_action_values, expected_state_action_values)
+        loss = self.loss(state_action_values, target)
 
         # optimize the model 
         self.optimizer.zero_grad() 
