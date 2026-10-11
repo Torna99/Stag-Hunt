@@ -45,7 +45,7 @@ argument_parser.add_argument("--stag_reward", type=int, default=5, help="Reward 
 argument_parser.add_argument("--mauling_penalty", type=int, default=-3, help="Penalty for mauling")
 
 argument_parser.add_argument("--discount_factor", type=float, default=0.99, help="Discount factor for future rewards")
-argument_parser.add_argument("--learning_rate", type=float, default=5e-4, help="Learning rate for the optimizer")
+argument_parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate for the optimizer")
 argument_parser.add_argument("--batch_size", type=int, default=64, help="Batch size for training")
 argument_parser.add_argument("--epsilon_start", type=float, default=1.0, help="Starting value of epsilon for epsilon-greedy policy")
 argument_parser.add_argument("--epsilon_decay", type=float, default=0.995, help="Decay rate of epsilon for epsilon-greedy policy")
