@@ -49,7 +49,7 @@ argument_parser.add_argument("--learning_rate", type=float, default=1e-3, help="
 argument_parser.add_argument("--batch_size", type=int, default=64, help="Batch size for training")
 argument_parser.add_argument("--epsilon_start", type=float, default=1.0, help="Starting value of epsilon for epsilon-greedy policy")
 argument_parser.add_argument("--epsilon_decay", type=float, default=0.995, help="Decay rate of epsilon for epsilon-greedy policy")
-argument_parser.add_argument("--epsilon_min", type=float, default=0.1, help="Minimum value of epsilon for epsilon-greedy policy")
+argument_parser.add_argument("--epsilon_min", type=float, default=0.01, help="Minimum value of epsilon for epsilon-greedy policy")
 argument_parser.add_argument("--target_update_freq", type=int, default=500, help="Frequency of target network updates for DQN-based algorithms")
 argument_parser.add_argument("--gae_lambda", type=float, default=0.95, help="Lambda parameter for GAE")
 argument_parser.add_argument("--ppo_epochs", type=int, default=5, help="Number of epochs for PPO updates")

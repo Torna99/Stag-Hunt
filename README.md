@@ -1,10 +1,10 @@
-# Autonomous and Adaptive Systems – Stug-Hunt
+# Autonomous and Adaptive Systems – Stag-Hunt
 
 This repository contains the code and the report of the project for the Autonomous and Adaptive Systems course at the University of Bologna. It compares four DQN variants (Vanilla, Standard, Double, Dueling), A2C and MAPPO on the three environments of the [Gymnasium-Stag-Hunt](https://github.com/giorgiofranceschelli/Gymnasium-Stag-Hunt) environment.
 
 | Environment | Challenge |
 |---|---|
-| **Hunt** (Stag-Hunt) | Hunting the stag gives the highest reward but requires both agents coordination; hunting it alone leads to a mauling penalty. Foraging is safe but low-reward.  |
+| **Hunt** (Stag-Hunt) | Hunting the stag gives the highest reward but requires both agents coordination, hunting it alone leads to a mauling penalty. Foraging is safe but low-reward.  |
 | **Harvest** | Plants grow over time: mature plants give higher reward than young plants (learn to delay harvesting) |
 | **Escalation** | Agents must coordinate step by step towards the stag, if one breaks the streak a penalty proportional to the streak length is applied. |
 
@@ -78,7 +78,7 @@ python src/train_escalation.py
 | `--replay_buffer_size` | 10000 | Replay buffer size (DQN) |
 | `--epsilon_start` | 1.0 | Initial epsilon for epsilon-greedy (DQN) |
 | `--epsilon_decay` | 0.995 | Multiplicative decay |
-| `--epsilon_min` | 0.1 | Minimum epsilon |
+| `--epsilon_min` | 0.01 | Minimum epsilon |
 | `--target_update_freq` | 500 | Target network update period C |
 | `--gae_lambda` | 0.95 | GAE lambda |
 | `--ppo_epochs` | 5 | PPO epochs per update |
@@ -110,7 +110,7 @@ python src/train_escalation.py
 
 | Argument | Default | Description |
 |---|---|---|
-| `--punishment_factor` | 0.5 | Penalty factor multiplied by the streak length when a agent breaks the coordination |
+| `--punishment_factor` | 0.5 | Penalty factor multiplied by the streak length when an agent breaks the coordination |
 
 ## Experiments
 
