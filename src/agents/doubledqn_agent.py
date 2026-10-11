@@ -1,7 +1,7 @@
 ### Note: This code is based on the paper "Deep Reinforcement Learning with Double Q-learning" by Hado van Hasselt, Arthur Guez, David Silver.
 ###
 ###
-### Here we implement the Double DQN algorithm, which is an improvement over the standard DQN algorithm. 
+### Here in implemented the Double DQN algorithm, which is an improvement over the standard DQN algorithm. 
 ### The idea is to decouple the action selection from the action evaluation in the target Q-value calculation, 
 ### to help reduce overestimation bias in Q-learning.
 

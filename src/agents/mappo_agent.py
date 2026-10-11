@@ -1,5 +1,5 @@
 ### Here we implement the MAPPO agent, which is a multi-agent version of PPO.
-### It uses a centralized critic and decentralized actors: critic has access to the global state of the env, while the actors only have access to their owm obs.
+### It uses a centralized critic and decentralized actors (CTDE): critic has access to the global state of the env, while the actors only have access to their owm obs.
 ### It uses the GAE to compute the advantages and returns, and the PPO algorithm to update the actor and critic networks.
 ###
 ###

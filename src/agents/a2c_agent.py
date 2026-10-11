@@ -79,9 +79,9 @@ class A2CAgent:
         '''
         Optimize the actor and critic networks based on the stored transitions.
         1) Compute the discounted returns for the stored transitions.
-        2) Compute the advantages: A(s, a) = R - V(s)
+        2) Compute the advantages: A(s, a) = G_t - V(s)
         3) Compute the actor loss: L_actor = -log_prob * A(s, a)
-        4) Compute the critic loss: L_critic = MSE(V(s), R)
+        4) Compute the critic loss: L_critic = MSE(V(s), G_t)
         5) Compute the entropy regularization term
         6) Compute the total loss: L_total = L_actor + critic_coeff *   L_critic - entropy_coeff * entropy_regularization
         7) Backpropagate the total loss and update the network parameters.
@@ -105,7 +105,7 @@ class A2CAgent:
         values = torch.cat(self.values)                      
         log_probs = torch.cat(self.log_probs).unsqueeze(1)    
          
-        ## 2) Compute the advantages [A(s, a) = R - V(s)]
+        ## 2) Compute the advantages [A(s, a) = G_t - V(s)]
         advantages = discounted_returns - values
         # Normalize the advantages to have mean 0 and std 1
         if advantages.numel() > 1:

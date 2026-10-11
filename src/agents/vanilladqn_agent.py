@@ -1,8 +1,8 @@
 ### Note: This code is based on the original paper and the implementation of DQN in the official pytorch tutorial
 ###
-### In this code we implement a standard DQN agent:
+### In this code it's presented a standard DQN agent implementation:
 ###     We'll use a Policy Network (Q-Network) to approximate the Q-function, and a Replay Memory to 
-###     store experiences  to avoid correlation between consecutive updates.The agent will use an 
+###     store experiences  to avoid correlation between consecutive updates. The agent will use an 
 ###     epsilon-greedy policy for action selection (this is an off-policy algorithm). 
 
 import torch 

@@ -6,7 +6,7 @@
 ### a moving target (moving target problem). The estimate of the Q-vlaues [Q(s,a, theta)] and the actual target [r + gamma * max_a' Q(s',a', theta)] 
 ### use the same parameters (theta) and this leads to the moving target problem.
 ### 
-### To solve this problem we use also a target network, which is a copy of the policy net and is updated only every C steps. 
+### To solve this problem it's also used a target network, which is a copy of the policy net and is updated only every C steps. 
 ### The new weights of the target net will be the same as the policy net. In this way the target values are  more stable and 
 ### the learning process is more stable.
 

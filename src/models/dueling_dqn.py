@@ -1,6 +1,6 @@
 ### Note: This code is based on the paper "Dueling Network Architectures for Deep Reinforcement Learning" by Ziyu Wang et al. 
 ###
-### Here the is the implementation of the Dueling DQN model, which is an extension of the DQN model. 
+### Here there is the implementation of the Dueling DQN model, which is an extension of the DQN model. 
 ### This architecture is runned with the Double DQN algorithm seen previously.
 
 import torch 
